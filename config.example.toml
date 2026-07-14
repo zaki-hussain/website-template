@@ -4,23 +4,11 @@
 
 name = "Your Name"
 
-# Playground links use this: an entry "demo" becomes https://demo.<domain>/.
+# Used as the site address in the RSS feed (https://<domain>/).
 domain = "example.com"
 
-# YYYY-MM-DD birthdate can be accessed with {age}
+# YYYY-MM-DD birthdate can be accessed with {{age}}
 birthdate = "2000-01-01"
-
-# Paragraphs shown under the "About" heading (the first is the greeting).
-about = [
-    "Write about yourself",
-    "You can also add your age with {{age}}",
-]
-
-# Small note shown under the "Playground" heading.
-playground_note = "Some small things I made and wanted to keep in one place."
-
-# Playground links. Each is a subdomain of `domain` (see above).
-playground = ["demo", "notes"]
 
 # Social icons in the header. `icon` is a filename in media/.
 [[socials]]
@@ -32,3 +20,38 @@ icon = "github.svg"
 label = "Email"
 href = "mailto:you@example.com"
 icon = "email.svg"
+
+# ---------------------------------------------------------------------------
+# Sections shown on the home page, rendered in this order. The first one is
+# expanded by default; opening any other collapses the rest (no JS involved).
+#
+# Every section needs `type` and `title`. Optional on any section: `note`,
+# a small grey line shown above the body.
+#
+# Types:
+#   text    — needs `paragraphs`, a list of strings ({{age}} works here)
+#   links   — needs `items`, a list of {label, href} tables; an optional
+#             `suffix` per item is shown greyed after the label
+#   writing — the generated list of posts from content/writings/ + RSS link
+# ---------------------------------------------------------------------------
+
+[[section]]
+type = "text"
+title = "About"
+paragraphs = [
+    "Write about yourself",
+    "You can also add your age with {{age}}",
+]
+
+[[section]]
+type = "links"
+title = "Playground"
+note = "Some small things I made and wanted to keep in one place."
+items = [
+    { label = "demo", suffix = ".example.com", href = "https://demo.example.com/" },
+    { label = "notes", suffix = ".example.com", href = "https://notes.example.com/" },
+]
+
+[[section]]
+type = "writing"
+title = "Writing"
