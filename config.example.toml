@@ -1,0 +1,34 @@
+# Copy this file to config.toml and edit it to make the site your own.
+# Then replace media/logo.jpg (favicon) and the social icons in media/,
+# add your posts to content/writings/, and run: python3 build.py
+
+name = "Your Name"
+
+# Playground links use this: an entry "demo" becomes https://demo.<domain>/.
+domain = "example.com"
+
+# YYYY-MM-DD birthdate can be accessed with {age}
+birthdate = "2000-01-01"
+
+# Paragraphs shown under the "About" heading (the first is the greeting).
+about = [
+    "Write about yourself",
+    "You can also add your age with {{age}}",
+]
+
+# Small note shown under the "Playground" heading.
+playground_note = "Some small things I made and wanted to keep in one place."
+
+# Playground links. Each is a subdomain of `domain` (see above).
+playground = ["demo", "notes"]
+
+# Social icons in the header. `icon` is a filename in media/.
+[[socials]]
+label = "GitHub"
+href = "https://github.com/your-username/"
+icon = "github.svg"
+
+[[socials]]
+label = "Email"
+href = "mailto:you@example.com"
+icon = "email.svg"
