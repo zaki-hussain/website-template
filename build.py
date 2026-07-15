@@ -4,14 +4,25 @@
 Assembles a self-contained, deployable site into ``dist/``:
 
 * copies the static assets (``css/``, ``media/``) verbatim;
-* reads person-specific content from ``config.toml`` (name, socials, about,
-  playground links) and injects it into ``index.html``;
+* reads person-specific content from ``config.toml`` (name, socials, and an
+  ordered list of ``[[section]]`` tables) and injects it into ``index.html``;
+* renders each ``[[section]]`` with ``templates/section.html`` in config
+  order — the first one is expanded by default, the rest collapsed, and all
+  share ``name="section"`` so opening one closes the others (no JS needed);
 * converts each Markdown source in ``content/writings/*.md`` to a standalone
-  HTML page in ``dist/writings/`` using ``templates/post.html``, builds the
-  Writing list on the home page, and writes an RSS feed to ``dist/feed.xml``.
+  HTML page in ``dist/writings/`` using ``templates/post.html``; if a section
+  of ``type = "writing"`` exists, it lists the posts on the home page and an
+  RSS feed is written to ``dist/feed.xml`` (skipped otherwise).
+
+Section types (``type`` field of ``[[section]]``, see ``SECTION_RENDERERS``):
+
+* ``text``    — ``paragraphs`` (list of strings) rendered as ``<p>`` blocks;
+* ``links``   — ``items`` (list of ``{label, href}`` tables) rendered as a
+  plain link list, with an optional ``note`` line above;
+* ``writing`` — the generated list of posts plus the RSS link.
 
 Optional: if ``config.toml`` has ``birthdate = "YYYY-MM-DD"``, the build
-computes age and substitutes ``{{age}}`` in config strings (e.g. about text).
+computes age and substitutes ``{{age}}`` in config strings (e.g. paragraphs).
 
 The repo itself is a generic template: everything personal lives in
 ``config.toml`` + ``content/writings/`` + ``media/``. Only the contents of
@@ -48,6 +59,7 @@ ROOT = Path(__file__).resolve().parent
 CONFIG_PATH = ROOT / "config.toml"
 CONTENT_DIR = ROOT / "content" / "writings"
 TEMPLATE_PATH = ROOT / "templates" / "post.html"
+SECTION_TEMPLATE_PATH = ROOT / "templates" / "section.html"
 INDEX_SRC = ROOT / "index.html"
 
 DIST = ROOT / "dist"
@@ -108,7 +120,7 @@ def replace_region(text: str, region: str, inner_lines: list[str]) -> str:
 
     def repl(match: re.Match) -> str:
         indent = match.group(1)
-        body = "\n".join(indent + line for line in inner_lines)
+        body = "\n".join(indent + line if line else "" for line in inner_lines)
         return f"{indent}{match.group(2)}\n{body}\n{indent}{match.group(3)}"
 
     return pattern.sub(repl, text)
@@ -170,26 +182,6 @@ def socials_lines(socials: list[dict]) -> list[str]:
     return lines
 
 
-def about_lines(about: list[str], age: str | None) -> list[str]:
-    lines = []
-    for paragraph in about:
-        text = apply_age(str(paragraph), age)
-        lines.append(f"<p>{escape(text)}</p>")
-    return lines
-
-
-def playground_lines(playground: list[str], domain: str) -> list[str]:
-    domain = escape(str(domain))
-    lines = []
-    for sub in playground:
-        sub = escape(str(sub))
-        lines.append(
-            f'<li><a href="https://{sub}.{domain}/" target="_blank" rel="noopener">'
-            f'{sub}<span class="tld">.{domain}</span></a></li>'
-        )
-    return lines
-
-
 def writing_lines(posts: list[dict[str, str]]) -> list[str]:
     if not posts:
         return ['<li class="list-empty">No braindumps yet</li>']
@@ -199,6 +191,120 @@ def writing_lines(posts: list[dict[str, str]]) -> list[str]:
         f'<span class="list-note">{escape(p["date"])}</span></li>'
         for p in ordered
     ]
+
+
+# ---------------------------------------------------------------------------
+# Section rendering
+#
+# Each [[section]] in config.toml declares a ``type``; the registry below maps
+# it to a renderer that returns the lines placed inside the section's
+# ``block-body``. Adding a new section type only means adding a renderer here.
+# ---------------------------------------------------------------------------
+
+
+def require_field(section: dict, field: str, label: str) -> object:
+    value = section.get(field)
+    if value is None or value == "" or value == []:
+        sys.exit(f"{label}: missing required field {field!r}.")
+    return value
+
+
+def render_text_section(section: dict, ctx: dict, label: str) -> list[str]:
+    """``type = "text"``: a list of ``paragraphs`` rendered as <p> blocks."""
+    paragraphs = require_field(section, "paragraphs", label)
+    lines = []
+    for paragraph in paragraphs:
+        text = apply_age(str(paragraph), ctx["age"])
+        lines.append(f"<p>{escape(text)}</p>")
+    return lines
+
+
+def render_links_section(section: dict, ctx: dict, label: str) -> list[str]:
+    """``type = "links"``: a plain list of ``items`` with label + href.
+
+    An item may carry an optional ``suffix`` shown greyed after the label
+    (e.g. label = "demo", suffix = ".example.com").
+    """
+    items = require_field(section, "items", label)
+    lines = ['<ul class="list list--plain">']
+    for item in items:
+        text = escape(str(require_field(item, "label", f"{label} item")))
+        href = escape(str(require_field(item, "href", f"{label} item")))
+        suffix = str(item.get("suffix", ""))
+        if suffix:
+            text += f'<span class="tld">{escape(suffix)}</span>'
+        lines.append(
+            f'    <li><a href="{href}" target="_blank" rel="noopener">{text}</a></li>'
+        )
+    lines.append("</ul>")
+    return lines
+
+
+def render_writing_section(section: dict, ctx: dict, label: str) -> list[str]:
+    """``type = "writing"``: the generated post list plus the RSS link."""
+    return [
+        '<p class="rss-link"><a href="feed.xml">rss</a></p>',
+        '<ul class="list">',
+        *("    " + line for line in writing_lines(ctx["posts"])),
+        "</ul>",
+    ]
+
+
+SECTION_RENDERERS = {
+    "text": render_text_section,
+    "links": render_links_section,
+    "writing": render_writing_section,
+}
+
+
+def render_section(section: dict, index: int, template: str, ctx: dict) -> list[str]:
+    label = f"config.toml [[section]] #{index + 1}"
+    if not isinstance(section, dict):
+        sys.exit(f"{label}: expected a table ([[section]]), got {type(section).__name__}.")
+
+    kind = str(section.get("type", "") or "")
+    if not kind:
+        sys.exit(f"{label}: missing required field 'type'.")
+    renderer = SECTION_RENDERERS.get(kind)
+    if renderer is None:
+        valid = ", ".join(sorted(SECTION_RENDERERS))
+        sys.exit(f"{label}: unknown type {kind!r}; valid types: {valid}.")
+
+    title = str(require_field(section, "title", label))
+
+    body_lines = []
+    note = str(section.get("note", ""))
+    if note:
+        note = apply_age(note, ctx["age"])
+        body_lines.append(f'<p class="block-note">{escape(note)}</p>')
+    body_lines.extend(renderer(section, ctx, label))
+
+    body = "\n".join("        " + line if line else "" for line in body_lines)
+    html = (
+        template.replace("{{open}}", " open" if index == 0 else "")
+        .replace("{{title}}", escape(title))
+        .replace("{{body}}", body)
+    )
+    return html.splitlines()
+
+
+def sections_lines(sections: list[dict], ctx: dict) -> list[str]:
+    if not sections:
+        sys.exit("config.toml has no [[section]] entries; add at least one.")
+    template = SECTION_TEMPLATE_PATH.read_text(encoding="utf-8")
+    lines: list[str] = []
+    for index, section in enumerate(sections):
+        if lines:
+            lines.append("")
+        lines.extend(render_section(section, index, template, ctx))
+    return lines
+
+
+def has_writing_section(sections: list[dict]) -> bool:
+    return any(
+        isinstance(section, dict) and section.get("type") == "writing"
+        for section in sections
+    )
 
 
 def rfc822_date(date_str: str) -> str:
@@ -252,21 +358,18 @@ def build_feed(config: dict, posts: list[dict[str, str]]) -> None:
 
 def build_index(config: dict, posts: list[dict[str, str]], age: str | None) -> None:
     text = INDEX_SRC.read_text(encoding="utf-8")
+    sections = config.get("section", [])
+    ctx = {"age": age, "posts": posts}
 
     text = replace_region(text, "SOCIALS", socials_lines(config.get("socials", [])))
-    text = replace_region(
-        text, "ABOUT", about_lines(config.get("about", []), age)
-    )
-    text = replace_region(
-        text,
-        "PLAYGROUND",
-        playground_lines(config.get("playground", []), config.get("domain", "")),
-    )
-    text = replace_region(text, "WRITING", writing_lines(posts))
+    text = replace_region(text, "SECTIONS", sections_lines(sections, ctx))
+
+    # The RSS feed only exists when a writing section does, so drop the
+    # <link rel="alternate" ...> from the head otherwise.
+    if not has_writing_section(sections):
+        text = re.sub(r'[ \t]*<link rel="alternate"[^>]*/?>\n', "", text)
 
     text = text.replace("{{name}}", escape(str(config.get("name", ""))))
-    note = apply_age(str(config.get("playground_note", "")), age)
-    text = text.replace("{{playground_note}}", escape(note))
 
     (DIST / "index.html").write_text(text, encoding="utf-8")
 
@@ -284,12 +387,14 @@ def copy_static_assets() -> None:
 
 
 def main() -> None:
-    if not TEMPLATE_PATH.exists():
-        sys.exit(f"Missing template: {TEMPLATE_PATH}")
+    for path in (TEMPLATE_PATH, SECTION_TEMPLATE_PATH):
+        if not path.exists():
+            sys.exit(f"Missing template: {path}")
     config = load_config()
     age = compute_age(config.get("birthdate"))
     template = TEMPLATE_PATH.read_text(encoding="utf-8")
     name = str(config.get("name", ""))
+    with_writing = has_writing_section(config.get("section", []))
 
     # Start from a clean output directory so nothing stale is ever served.
     if DIST.exists():
@@ -303,16 +408,18 @@ def main() -> None:
     )
     posts = [build_post(path, template, name) for path in sources]
     build_index(config, posts, age)
-    build_feed(config, posts)
+    if with_writing:
+        build_feed(config, posts)
 
     print(f"Built site into {DIST.name}/ ({len(posts)} writing(s)):")
     for post in sorted(posts, key=lambda p: p["date"], reverse=True):
         print(f"  - {post['date']}  {post['title']}  ->  {DIST.name}/writings/{post['slug']}.html")
-    print(f"  feed -> {DIST.name}/feed.xml")
+    if with_writing:
+        print(f"  feed -> {DIST.name}/feed.xml")
+        if not posts:
+            print("  (no writings yet — home page shows 'No braindumps yet')")
     if age is not None:
         print(f"  age  -> {age} (from birthdate)")
-    if not posts:
-        print("  (no writings yet — home page shows 'No braindumps yet')")
 
 
 if __name__ == "__main__":
