@@ -1,11 +1,15 @@
 # Copy this file to config.toml and edit it to make the site your own.
-# Then put your favicon and social icons in media/, add your posts to
+# Then put your favicon, social icons, and RSS icon in media/, add your posts to
 # content/writing/, and run: python3 build.py
 
 name = "Your Name"
 
 # Favicon filename in media/ (used as the site logo / browser tab icon).
 logo = "logo.jpg"
+
+# RSS icon filename in media/ (shown next to the writing list when {{writing}} is used).
+# Defaults to "rss.svg" if omitted.
+rss_icon = "rss.svg"
 
 # Site domain: used in the RSS feed (https://<domain>/) and for {{subdomains: ...}}.
 domain = "example.com"
@@ -32,7 +36,7 @@ icon = "email.svg"
 # works too. Placeholders you can drop anywhere in `text`:
 #
 #   {{age}}                — age computed from birthdate
-#   {{writing}}            — the post list from content/writing/ + RSS link
+#   {{writing}}            — the post list from content/writing/ + RSS icon
 #   {{subdomains: a, b}}   — prefixes linking to https://<prefix>.<domain>/
 #                            with .<domain> greyed out
 # ---------------------------------------------------------------------------
