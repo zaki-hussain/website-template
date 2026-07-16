@@ -21,8 +21,10 @@ Section types (``type`` field of ``[[section]]``, see ``SECTION_RENDERERS``):
   plain link list, with an optional ``note`` line above;
 * ``writing`` — the generated list of posts plus the RSS link.
 
-Optional: if ``config.toml`` has ``birthdate = "YYYY-MM-DD"``, the build
-computes age and substitutes ``{{age}}`` in config strings (e.g. paragraphs).
+Optional placeholders in config strings (paragraphs, notes, link fields):
+
+* ``{{age}}``    — requires ``birthdate = "YYYY-MM-DD"``;
+* ``{{domain}}`` — requires ``domain`` (same value used for the RSS site URL).
 
 The repo itself is a generic template: everything personal lives in
 ``config.toml`` + ``content/writings/`` + ``media/``. Only the contents of
@@ -96,16 +98,25 @@ def compute_age(birthdate: object) -> str | None:
     return str(age)
 
 
-def apply_age(text: str, age: str | None) -> str:
-    """Replace ``{{age}}`` when a birthdate was provided."""
-    if "{{age}}" not in text:
-        return text
-    if age is None:
-        sys.exit(
-            "{{age}} appears in config but birthdate is missing. "
-            'Add birthdate = "YYYY-MM-DD" to config.toml.'
-        )
-    return text.replace("{{age}}", age)
+def apply_placeholders(text: str, ctx: dict) -> str:
+    """Replace ``{{age}}`` / ``{{domain}}`` when those values were provided."""
+    if "{{age}}" in text:
+        age = ctx.get("age")
+        if age is None:
+            sys.exit(
+                "{{age}} appears in config but birthdate is missing. "
+                'Add birthdate = "YYYY-MM-DD" to config.toml.'
+            )
+        text = text.replace("{{age}}", str(age))
+    if "{{domain}}" in text:
+        domain = str(ctx.get("domain") or "").strip()
+        if not domain:
+            sys.exit(
+                "{{domain}} appears in config but domain is missing. "
+                'Add domain = "example.com" to config.toml.'
+            )
+        text = text.replace("{{domain}}", domain)
+    return text
 
 
 def replace_region(text: str, region: str, inner_lines: list[str]) -> str:
@@ -215,7 +226,7 @@ def render_text_section(section: dict, ctx: dict, label: str) -> list[str]:
     paragraphs = require_field(section, "paragraphs", label)
     lines = []
     for paragraph in paragraphs:
-        text = apply_age(str(paragraph), ctx["age"])
+        text = apply_placeholders(str(paragraph), ctx)
         lines.append(f"<p>{escape(text)}</p>")
     return lines
 
@@ -224,14 +235,19 @@ def render_links_section(section: dict, ctx: dict, label: str) -> list[str]:
     """``type = "links"``: a plain list of ``items`` with label + href.
 
     An item may carry an optional ``suffix`` shown greyed after the label
-    (e.g. label = "demo", suffix = ".example.com").
+    (e.g. label = "demo", suffix = ".{{domain}}"). ``{{domain}}`` / ``{{age}}``
+    work in ``label``, ``suffix``, and ``href``.
     """
     items = require_field(section, "items", label)
     lines = ['<ul class="list list--plain">']
     for item in items:
-        text = escape(str(require_field(item, "label", f"{label} item")))
-        href = escape(str(require_field(item, "href", f"{label} item")))
-        suffix = str(item.get("suffix", ""))
+        text = escape(
+            apply_placeholders(str(require_field(item, "label", f"{label} item")), ctx)
+        )
+        href = escape(
+            apply_placeholders(str(require_field(item, "href", f"{label} item")), ctx)
+        )
+        suffix = apply_placeholders(str(item.get("suffix", "")), ctx)
         if suffix:
             text += f'<span class="tld">{escape(suffix)}</span>'
         lines.append(
@@ -276,7 +292,7 @@ def render_section(section: dict, index: int, template: str, ctx: dict) -> list[
     body_lines = []
     note = str(section.get("note", ""))
     if note:
-        note = apply_age(note, ctx["age"])
+        note = apply_placeholders(note, ctx)
         body_lines.append(f'<p class="block-note">{escape(note)}</p>')
     body_lines.extend(renderer(section, ctx, label))
 
@@ -360,7 +376,11 @@ def build_feed(config: dict, posts: list[dict[str, str]]) -> None:
 def build_index(config: dict, posts: list[dict[str, str]], age: str | None) -> None:
     text = INDEX_SRC.read_text(encoding="utf-8")
     sections = config.get("section", [])
-    ctx = {"age": age, "posts": posts}
+    ctx = {
+        "age": age,
+        "posts": posts,
+        "domain": str(config.get("domain", "")),
+    }
 
     text = replace_region(text, "SOCIALS", socials_lines(config.get("socials", [])))
     text = replace_region(text, "SECTIONS", sections_lines(sections, ctx))
