@@ -16,10 +16,13 @@ Assembles a self-contained, deployable site into ``dist/``:
 
 Section types (``type`` field of ``[[section]]``, see ``SECTION_RENDERERS``):
 
-* ``text``    — ``paragraphs`` (list of strings) rendered as ``<p>`` blocks;
-* ``links``   — ``items`` (list of ``{label, href}`` tables) rendered as a
+* ``text``       — ``paragraphs`` (list of strings) rendered as ``<p>`` blocks;
+* ``links``      — ``items`` (list of ``{label, href}`` tables) rendered as a
   plain link list, with an optional ``note`` line above;
-* ``writing`` — the generated list of posts plus the RSS link.
+* ``subdomains`` — ``items`` (list of subdomain prefixes, e.g. ``"demo"``)
+  linking to ``https://<prefix>.<domain>/``; the prefix keeps the accent
+  colour while the ``.<domain>`` part is greyed out;
+* ``writing``    — the generated list of posts plus the RSS link.
 
 Optional: if ``config.toml`` has ``birthdate = "YYYY-MM-DD"``, the build
 computes age and substitutes ``{{age}}`` in config strings (e.g. paragraphs).
@@ -221,19 +224,40 @@ def render_text_section(section: dict, ctx: dict, label: str) -> list[str]:
 
 
 def render_links_section(section: dict, ctx: dict, label: str) -> list[str]:
-    """``type = "links"``: a plain list of ``items`` with label + href.
-
-    An item may carry an optional ``suffix`` shown greyed after the label
-    (e.g. label = "demo", suffix = ".example.com").
-    """
+    """``type = "links"``: a plain list of ``items`` with label + href."""
     items = require_field(section, "items", label)
     lines = ['<ul class="list list--plain">']
     for item in items:
         text = escape(str(require_field(item, "label", f"{label} item")))
         href = escape(str(require_field(item, "href", f"{label} item")))
-        suffix = str(item.get("suffix", ""))
-        if suffix:
-            text += f'<span class="tld">{escape(suffix)}</span>'
+        lines.append(
+            f'    <li><a href="{href}" target="_blank" rel="noopener">{text}</a></li>'
+        )
+    lines.append("</ul>")
+    return lines
+
+
+def render_subdomains_section(section: dict, ctx: dict, label: str) -> list[str]:
+    """``type = "subdomains"``: a list of subdomain prefixes on the site domain.
+
+    Each item is just the prefix (e.g. ``"demo"``); it links to
+    ``https://<prefix>.<domain>/`` and is rendered with the prefix in the
+    accent colour and ``.<domain>`` greyed out.
+    """
+    domain = str(ctx.get("domain") or "").strip()
+    if not domain:
+        sys.exit(
+            f'{label}: type "subdomains" needs the top-level domain setting. '
+            'Add domain = "example.com" to config.toml.'
+        )
+    items = require_field(section, "items", label)
+    lines = ['<ul class="list list--plain">']
+    for item in items:
+        prefix = str(item).strip()
+        if not prefix:
+            sys.exit(f"{label}: empty subdomain in 'items'.")
+        href = escape(f"https://{prefix}.{domain}/")
+        text = f'{escape(prefix)}<span class="tld">.{escape(domain)}</span>'
         lines.append(
             f'    <li><a href="{href}" target="_blank" rel="noopener">{text}</a></li>'
         )
@@ -254,6 +278,7 @@ def render_writing_section(section: dict, ctx: dict, label: str) -> list[str]:
 SECTION_RENDERERS = {
     "text": render_text_section,
     "links": render_links_section,
+    "subdomains": render_subdomains_section,
     "writing": render_writing_section,
 }
 
@@ -360,7 +385,7 @@ def build_feed(config: dict, posts: list[dict[str, str]]) -> None:
 def build_index(config: dict, posts: list[dict[str, str]], age: str | None) -> None:
     text = INDEX_SRC.read_text(encoding="utf-8")
     sections = config.get("section", [])
-    ctx = {"age": age, "posts": posts}
+    ctx = {"age": age, "posts": posts, "domain": str(config.get("domain", ""))}
 
     text = replace_region(text, "SOCIALS", socials_lines(config.get("socials", [])))
     text = replace_region(text, "SECTIONS", sections_lines(sections, ctx))

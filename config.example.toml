@@ -32,10 +32,12 @@ icon = "email.svg"
 # a small grey line shown above the body.
 #
 # Types:
-#   text    — needs `paragraphs`, a list of strings ({{age}} works here)
-#   links   — needs `items`, a list of {label, href} tables; an optional
-#             `suffix` per item is shown greyed after the label
-#   writing — the generated list of posts from content/writings/ + RSS link
+#   text       — needs `paragraphs`, a list of strings ({{age}} works here)
+#   links      — needs `items`, a list of {label, href} tables
+#   subdomains — needs `items`, a list of subdomain prefixes; each links to
+#                https://<prefix>.<domain>/ with the prefix accent-coloured
+#                and .<domain> greyed out
+#   writing    — the generated list of posts from content/writings/ + RSS link
 # ---------------------------------------------------------------------------
 
 [[section]]
@@ -47,13 +49,10 @@ paragraphs = [
 ]
 
 [[section]]
-type = "links"
+type = "subdomains"
 title = "Playground"
 note = "Some small things I made and wanted to keep in one place."
-items = [
-    { label = "demo", suffix = ".example.com", href = "https://demo.example.com/" },
-    { label = "notes", suffix = ".example.com", href = "https://notes.example.com/" },
-]
+items = ["demo", "notes"]
 
 [[section]]
 type = "writing"
