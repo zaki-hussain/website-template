@@ -11,21 +11,18 @@ Assembles a self-contained, deployable site into ``dist/``:
   share ``name="section"`` so opening one closes the others (no JS needed);
 * converts each Markdown source in ``content/writings/*.md`` to a standalone
   HTML page in ``dist/writings/`` using ``templates/post.html``; if a section
-  of ``type = "writing"`` exists, it lists the posts on the home page and an
-  RSS feed is written to ``dist/feed.xml`` (skipped otherwise).
+  uses ``{{writings}}``, it lists the posts on the home page and an RSS feed
+  is written to ``dist/feed.xml`` (skipped otherwise).
 
-Section types (``type`` field of ``[[section]]``, see ``SECTION_RENDERERS``):
+A ``[[section]]`` is ``title`` + ``text``, where text is Markdown and inline
+HTML passes through untouched. Placeholders inside ``text``:
 
-* ``text``       — ``paragraphs`` (list of strings) rendered as ``<p>`` blocks;
-* ``links``      — ``items`` (list of ``{label, href}`` tables) rendered as a
-  plain link list, with an optional ``note`` line above;
-* ``subdomains`` — ``items`` (list of subdomain prefixes, e.g. ``"demo"``)
-  linking to ``https://<prefix>.<domain>/``; the prefix keeps the accent
-  colour while the ``.<domain>`` part is greyed out;
-* ``writing``    — the generated list of posts plus the RSS link.
-
-Optional: if ``config.toml`` has ``birthdate = "YYYY-MM-DD"``, the build
-computes age and substitutes ``{{age}}`` in config strings (e.g. paragraphs).
+* ``{{age}}``        — age computed from top-level ``birthdate`` (YYYY-MM-DD);
+* ``{{writings}}``   — the generated post list plus the RSS link;
+* ``{{subdomains}}`` — the section's ``subdomains`` list of prefixes, each
+  linking to ``https://<prefix>.<domain>/`` with the prefix accent-coloured
+  and ``.<domain>`` greyed out; if the placeholder is omitted the list is
+  appended after the text.
 
 The repo itself is a generic template: everything personal lives in
 ``config.toml`` + ``content/writings/`` + ``media/``. Only the contents of
@@ -200,9 +197,9 @@ def writing_lines(posts: list[dict[str, str]]) -> list[str]:
 # ---------------------------------------------------------------------------
 # Section rendering
 #
-# Each [[section]] in config.toml declares a ``type``; the registry below maps
-# it to a renderer that returns the lines placed inside the section's
-# ``block-body``. Adding a new section type only means adding a renderer here.
+# Each [[section]] in config.toml is just ``title`` + ``text``, where text is
+# Markdown (inline HTML passes through untouched). Special generated blocks
+# are dropped in via placeholders inside the text — see the renderers below.
 # ---------------------------------------------------------------------------
 
 
@@ -213,74 +210,46 @@ def require_field(section: dict, field: str, label: str) -> object:
     return value
 
 
-def render_text_section(section: dict, ctx: dict, label: str) -> list[str]:
-    """``type = "text"``: a list of ``paragraphs`` rendered as <p> blocks."""
-    paragraphs = require_field(section, "paragraphs", label)
-    lines = []
-    for paragraph in paragraphs:
-        text = apply_age(str(paragraph), ctx["age"])
-        lines.append(f"<p>{escape(text)}</p>")
-    return lines
+def render_writings_block(ctx: dict) -> str:
+    """``{{writings}}``: the generated post list plus the RSS link."""
+    return "\n".join(
+        [
+            '<p class="rss-link"><a href="feed.xml">rss</a></p>',
+            '<ul class="list">',
+            *("    " + line for line in writing_lines(ctx["posts"])),
+            "</ul>",
+        ]
+    )
 
 
-def render_links_section(section: dict, ctx: dict, label: str) -> list[str]:
-    """``type = "links"``: a plain list of ``items`` with label + href."""
-    items = require_field(section, "items", label)
-    lines = ['<ul class="list list--plain">']
-    for item in items:
-        text = escape(str(require_field(item, "label", f"{label} item")))
-        href = escape(str(require_field(item, "href", f"{label} item")))
-        lines.append(
-            f'    <li><a href="{href}" target="_blank" rel="noopener">{text}</a></li>'
-        )
-    lines.append("</ul>")
-    return lines
-
-
-def render_subdomains_section(section: dict, ctx: dict, label: str) -> list[str]:
-    """``type = "subdomains"``: a list of subdomain prefixes on the site domain.
-
-    Each item is just the prefix (e.g. ``"demo"``); it links to
-    ``https://<prefix>.<domain>/`` and is rendered with the prefix in the
-    accent colour and ``.<domain>`` greyed out.
-    """
+def render_subdomains_block(items: list, ctx: dict, label: str) -> str:
+    """``{{subdomains}}``: prefixes linking to ``https://<prefix>.<domain>/``,
+    with the prefix accent-coloured and ``.<domain>`` greyed out."""
     domain = str(ctx.get("domain") or "").strip()
     if not domain:
         sys.exit(
-            f'{label}: type "subdomains" needs the top-level domain setting. '
+            f"{label}: 'subdomains' needs the top-level domain setting. "
             'Add domain = "example.com" to config.toml.'
         )
-    items = require_field(section, "items", label)
     lines = ['<ul class="list list--plain">']
     for item in items:
         prefix = str(item).strip()
         if not prefix:
-            sys.exit(f"{label}: empty subdomain in 'items'.")
+            sys.exit(f"{label}: empty entry in 'subdomains'.")
         href = escape(f"https://{prefix}.{domain}/")
         text = f'{escape(prefix)}<span class="tld">.{escape(domain)}</span>'
         lines.append(
             f'    <li><a href="{href}" target="_blank" rel="noopener">{text}</a></li>'
         )
     lines.append("</ul>")
-    return lines
+    return "\n".join(lines)
 
 
-def render_writing_section(section: dict, ctx: dict, label: str) -> list[str]:
-    """``type = "writing"``: the generated post list plus the RSS link."""
-    return [
-        '<p class="rss-link"><a href="feed.xml">rss</a></p>',
-        '<ul class="list">',
-        *("    " + line for line in writing_lines(ctx["posts"])),
-        "</ul>",
-    ]
-
-
-SECTION_RENDERERS = {
-    "text": render_text_section,
-    "links": render_links_section,
-    "subdomains": render_subdomains_section,
-    "writing": render_writing_section,
-}
+def replace_block_token(html: str, token: str, block_html: str) -> str:
+    """Swap ``{{token}}`` for generated block HTML, unwrapping the ``<p>``
+    that Markdown adds when the placeholder stands on its own line."""
+    pattern = re.compile(rf"<p>\s*\{{\{{{token}\}}\}}\s*</p>|\{{\{{{token}\}}\}}")
+    return pattern.sub(lambda _: block_html, html)
 
 
 def render_section(section: dict, index: int, template: str, ctx: dict) -> list[str]:
@@ -288,28 +257,33 @@ def render_section(section: dict, index: int, template: str, ctx: dict) -> list[
     if not isinstance(section, dict):
         sys.exit(f"{label}: expected a table ([[section]]), got {type(section).__name__}.")
 
-    kind = str(section.get("type", "") or "")
-    if not kind:
-        sys.exit(f"{label}: missing required field 'type'.")
-    renderer = SECTION_RENDERERS.get(kind)
-    if renderer is None:
-        valid = ", ".join(sorted(SECTION_RENDERERS))
-        sys.exit(f"{label}: unknown type {kind!r}; valid types: {valid}.")
-
     title = str(require_field(section, "title", label))
+    text = str(section.get("text", ""))
+    subdomains = section.get("subdomains")
+    if not text.strip() and not subdomains:
+        sys.exit(f"{label}: needs 'text' (Markdown) and/or a 'subdomains' list.")
 
-    body_lines = []
-    note = str(section.get("note", ""))
-    if note:
-        note = apply_age(note, ctx["age"])
-        body_lines.append(f'<p class="block-note">{escape(note)}</p>')
-    body_lines.extend(renderer(section, ctx, label))
+    body = render_markdown(apply_age(text, ctx["age"])) if text.strip() else ""
 
-    body = "\n".join("        " + line if line else "" for line in body_lines)
+    if "{{writings}}" in body:
+        body = replace_block_token(body, "writings", render_writings_block(ctx))
+
+    if "{{subdomains}}" in body and not subdomains:
+        sys.exit(f"{label}: {{{{subdomains}}}} used but no 'subdomains' list defined.")
+    if subdomains:
+        block = render_subdomains_block(subdomains, ctx, label)
+        if "{{subdomains}}" in body:
+            body = replace_block_token(body, "subdomains", block)
+        else:
+            body = f"{body}\n{block}" if body else block
+
+    indented = "\n".join(
+        "        " + line if line else "" for line in body.splitlines()
+    )
     html = (
         template.replace("{{open}}", " open" if index == 0 else "")
         .replace("{{title}}", escape(title))
-        .replace("{{body}}", body)
+        .replace("{{body}}", indented)
     )
     return html.splitlines()
 
@@ -326,9 +300,9 @@ def sections_lines(sections: list[dict], ctx: dict) -> list[str]:
     return lines
 
 
-def has_writing_section(sections: list[dict]) -> bool:
+def has_writings_block(sections: list[dict]) -> bool:
     return any(
-        isinstance(section, dict) and section.get("type") == "writing"
+        isinstance(section, dict) and "{{writings}}" in str(section.get("text", ""))
         for section in sections
     )
 
@@ -390,9 +364,9 @@ def build_index(config: dict, posts: list[dict[str, str]], age: str | None) -> N
     text = replace_region(text, "SOCIALS", socials_lines(config.get("socials", [])))
     text = replace_region(text, "SECTIONS", sections_lines(sections, ctx))
 
-    # The RSS feed only exists when a writing section does, so drop the
-    # <link rel="alternate" ...> from the head otherwise.
-    if not has_writing_section(sections):
+    # The RSS feed only exists when {{writings}} is used somewhere, so drop
+    # the <link rel="alternate" ...> from the head otherwise.
+    if not has_writings_block(sections):
         text = re.sub(r'[ \t]*<link rel="alternate"[^>]*/?>\n', "", text)
 
     text = text.replace("{{name}}", escape(str(config.get("name", ""))))
@@ -422,7 +396,7 @@ def main() -> None:
     template = TEMPLATE_PATH.read_text(encoding="utf-8")
     name = str(config.get("name", ""))
     logo = str(config.get("logo", "logo.jpg"))
-    with_writing = has_writing_section(config.get("section", []))
+    with_writing = has_writings_block(config.get("section", []))
 
     # Start from a clean output directory so nothing stale is ever served.
     if DIST.exists():

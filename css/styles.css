@@ -253,6 +253,18 @@ a:hover {
     font-size: 1.05rem;
 }
 
+/* Markdown lists written in section text (generated lists carry .list) */
+.block-body ul:not(.list),
+.block-body ol:not(.list) {
+    margin: 0 0 0.5rem;
+    padding-left: 1.4rem;
+}
+
+.block-body ul:not(.list) li,
+.block-body ol:not(.list) li {
+    padding: 0.1rem 0;
+}
+
 /* ---------- Writing / blog pages ---------- */
 
 .post {

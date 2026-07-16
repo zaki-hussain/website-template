@@ -7,7 +7,7 @@ name = "Your Name"
 # Favicon filename in media/ (used as the site logo / browser tab icon).
 logo = "logo.jpg"
 
-# Used as the site address in the RSS feed (https://<domain>/).
+# Site domain: used in the RSS feed (https://<domain>/) and for subdomain lists.
 domain = "example.com"
 
 # YYYY-MM-DD birthdate can be accessed with {{age}}
@@ -28,32 +28,31 @@ icon = "email.svg"
 # Sections shown on the home page, rendered in this order. The first one is
 # expanded by default; opening any other collapses the rest (no JS involved).
 #
-# Every section needs `type` and `title`. Optional on any section: `note`,
-# a small grey line shown above the body.
+# A section is a `title` plus a `text` body written in Markdown — inline HTML
+# works too. Placeholders you can drop anywhere in `text`:
 #
-# Types:
-#   text       — needs `paragraphs`, a list of strings ({{age}} works here)
-#   links      — needs `items`, a list of {label, href} tables
-#   subdomains — needs `items`, a list of subdomain prefixes; each links to
-#                https://<prefix>.<domain>/ with the prefix accent-coloured
-#                and .<domain> greyed out
-#   writing    — the generated list of posts from content/writings/ + RSS link
+#   {{age}}        — age computed from birthdate
+#   {{writings}}   — the post list from content/writings/ + RSS link
+#   {{subdomains}} — the section's `subdomains` list; each prefix links to
+#                    https://<prefix>.<domain>/ with .<domain> greyed out
+#                    (omit the placeholder and the list goes after the text)
 # ---------------------------------------------------------------------------
 
 [[section]]
-type = "text"
 title = "About"
-paragraphs = [
-    "Write about yourself",
-    "You can also add your age with {{age}}",
-]
+text = """
+Write about yourself in **Markdown** — links, lists, and <em>inline HTML</em> all work.
+
+You can also add your age with {{age}}.
+"""
 
 [[section]]
-type = "subdomains"
 title = "Playground"
-note = "Some small things I made and wanted to keep in one place."
-items = ["demo", "notes"]
+text = """
+<p class="block-note">Some small things I made and wanted to keep in one place.</p>
+"""
+subdomains = ["demo", "notes"]
 
 [[section]]
-type = "writing"
 title = "Writing"
+text = "{{writings}}"
