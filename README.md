@@ -14,6 +14,7 @@ Top level:
 
 - `name` — page heading and title
 - `logo` — favicon filename in `media/`
+- `rss_icon` — RSS icon filename in `media/` (defaults to `rss.svg`; shown with `{{writing}}`)
 - `domain` — site domain for the RSS feed and for `{{subdomains: ...}}`
 - `birthdate` — `YYYY-MM-DD`, enables `{{age}}`
 - `[[socials]]` — header icons: `label`, `href`, `icon` (filename in `media/`)
@@ -34,7 +35,7 @@ I am {{age}}.
 Placeholders usable anywhere in `text`:
 
 - `{{age}}` — age computed from `birthdate`
-- `{{writing}}` — the post list from `content/writing/` plus an RSS link (also enables `feed.xml`)
+- `{{writing}}` — the post list from `content/writing/` plus an RSS icon linking to `feed.xml` (also enables the feed)
 - `{{subdomains: demo, notes}}` — a link for each prefix on the top-level `domain` (`demo.example.com`, …), with the `.<domain>` part greyed out
 
 ```toml

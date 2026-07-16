@@ -191,16 +191,23 @@ a:hover {
 
 .rss-link {
     margin: -0.35rem 0 0.75rem;
-    font-size: 0.75rem;
-    letter-spacing: 0.04em;
 }
 
 .rss-link a {
-    color: var(--grey);
+    display: inline-block;
+    line-height: 0;
 }
 
-.rss-link a:hover {
-    color: var(--accent);
+.rss-link img {
+    width: 1.1rem;
+    height: 1.1rem;
+    display: block;
+    transition: transform 0.2s ease, filter 0.2s ease;
+}
+
+.rss-link a:hover img {
+    filter: brightness(50%);
+    transform: scale(1.1);
 }
 
 .list {
@@ -414,6 +421,11 @@ a:hover {
     }
 
     .icon:hover {
+        transform: none;
+        filter: none;
+    }
+
+    .rss-link a:hover img {
         transform: none;
         filter: none;
     }

@@ -18,7 +18,7 @@ A ``[[section]]`` is ``title`` + ``text``, where text is Markdown and inline
 HTML passes through untouched. Placeholders inside ``text``:
 
 * ``{{age}}``                   — age computed from top-level ``birthdate``;
-* ``{{writing}}``               — the generated post list plus the RSS link;
+* ``{{writing}}``               — the generated post list plus the RSS icon;
 * ``{{subdomains: a, b, ...}}`` — link list for those prefixes on the top-level
   ``domain``, with the prefix accent-coloured and ``.<domain>`` greyed out.
 
@@ -209,10 +209,14 @@ def require_field(section: dict, field: str, label: str) -> object:
 
 
 def render_writing_block(ctx: dict) -> str:
-    """``{{writing}}``: the generated post list plus the RSS link."""
+    """``{{writing}}``: the generated post list plus the RSS icon."""
+    icon = escape(str(ctx.get("rss_icon") or "rss.svg"))
     return "\n".join(
         [
-            '<p class="rss-link"><a href="feed.xml">rss</a></p>',
+            '<p class="rss-link">'
+            '<a href="feed.xml" aria-label="RSS">'
+            f'<img src="media/{icon}" alt="RSS">'
+            "</a></p>",
             '<ul class="list">',
             *("    " + line for line in writing_lines(ctx["posts"])),
             "</ul>",
@@ -360,7 +364,12 @@ def build_feed(config: dict, posts: list[dict[str, str]]) -> None:
 def build_index(config: dict, posts: list[dict[str, str]], age: str | None) -> None:
     text = INDEX_SRC.read_text(encoding="utf-8")
     sections = config.get("section", [])
-    ctx = {"age": age, "posts": posts, "domain": str(config.get("domain", ""))}
+    ctx = {
+        "age": age,
+        "posts": posts,
+        "domain": str(config.get("domain", "")),
+        "rss_icon": str(config.get("rss_icon", "rss.svg")),
+    }
 
     text = replace_region(text, "SOCIALS", socials_lines(config.get("socials", [])))
     text = replace_region(text, "SECTIONS", sections_lines(sections, ctx))
