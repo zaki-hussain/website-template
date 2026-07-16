@@ -7,7 +7,7 @@ name = "Your Name"
 # Favicon filename in media/ (used as the site logo / browser tab icon).
 logo = "logo.jpg"
 
-# Site domain: used in the RSS feed (https://<domain>/) and for subdomain lists.
+# Site domain: used in the RSS feed (https://<domain>/) and for {{subdomains: ...}}.
 domain = "example.com"
 
 # YYYY-MM-DD birthdate can be accessed with {{age}}
@@ -31,11 +31,10 @@ icon = "email.svg"
 # A section is a `title` plus a `text` body written in Markdown — inline HTML
 # works too. Placeholders you can drop anywhere in `text`:
 #
-#   {{age}}        — age computed from birthdate
-#   {{writings}}   — the post list from content/writings/ + RSS link
-#   {{subdomains}} — the section's `subdomains` list; each prefix links to
-#                    https://<prefix>.<domain>/ with .<domain> greyed out
-#                    (omit the placeholder and the list goes after the text)
+#   {{age}}                — age computed from birthdate
+#   {{writings}}           — the post list from content/writings/ + RSS link
+#   {{subdomains: a, b}}   — prefixes linking to https://<prefix>.<domain>/
+#                            with .<domain> greyed out
 # ---------------------------------------------------------------------------
 
 [[section]]
@@ -50,8 +49,9 @@ You can also add your age with {{age}}.
 title = "Playground"
 text = """
 <p class="block-note">Some small things I made and wanted to keep in one place.</p>
+
+{{subdomains: demo, notes}}
 """
-subdomains = ["demo", "notes"]
 
 [[section]]
 title = "Writing"

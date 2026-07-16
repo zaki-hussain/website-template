@@ -17,12 +17,10 @@ Assembles a self-contained, deployable site into ``dist/``:
 A ``[[section]]`` is ``title`` + ``text``, where text is Markdown and inline
 HTML passes through untouched. Placeholders inside ``text``:
 
-* ``{{age}}``        — age computed from top-level ``birthdate`` (YYYY-MM-DD);
-* ``{{writings}}``   — the generated post list plus the RSS link;
-* ``{{subdomains}}`` — the section's ``subdomains`` list of prefixes, each
-  linking to ``https://<prefix>.<domain>/`` with the prefix accent-coloured
-  and ``.<domain>`` greyed out; if the placeholder is omitted the list is
-  appended after the text.
+* ``{{age}}``                   — age computed from top-level ``birthdate``;
+* ``{{writings}}``              — the generated post list plus the RSS link;
+* ``{{subdomains: a, b, ...}}`` — link list for those prefixes on the top-level
+  ``domain``, with the prefix accent-coloured and ``.<domain>`` greyed out.
 
 The repo itself is a generic template: everything personal lives in
 ``config.toml`` + ``content/writings/`` + ``media/``. Only the contents of
@@ -222,20 +220,22 @@ def render_writings_block(ctx: dict) -> str:
     )
 
 
-def render_subdomains_block(items: list, ctx: dict, label: str) -> str:
-    """``{{subdomains}}``: prefixes linking to ``https://<prefix>.<domain>/``,
-    with the prefix accent-coloured and ``.<domain>`` greyed out."""
+SUBDOMAINS_TOKEN_RE = re.compile(
+    r"(?:<p>\s*)?\{\{subdomains:\s*([^}]+?)\}\}(?:\s*</p>)?"
+)
+
+
+def render_subdomains_block(items: list[str], ctx: dict, label: str) -> str:
+    """Prefixes linking to ``https://<prefix>.<domain>/``, with the prefix
+    accent-coloured and ``.<domain>`` greyed out."""
     domain = str(ctx.get("domain") or "").strip()
     if not domain:
         sys.exit(
-            f"{label}: 'subdomains' needs the top-level domain setting. "
+            f"{label}: {{{{subdomains: ...}}}} needs the top-level domain setting. "
             'Add domain = "example.com" to config.toml.'
         )
     lines = ['<ul class="list list--plain">']
-    for item in items:
-        prefix = str(item).strip()
-        if not prefix:
-            sys.exit(f"{label}: empty entry in 'subdomains'.")
+    for prefix in items:
         href = escape(f"https://{prefix}.{domain}/")
         text = f'{escape(prefix)}<span class="tld">.{escape(domain)}</span>'
         lines.append(
@@ -243,6 +243,18 @@ def render_subdomains_block(items: list, ctx: dict, label: str) -> str:
         )
     lines.append("</ul>")
     return "\n".join(lines)
+
+
+def expand_subdomains(html: str, ctx: dict, label: str) -> str:
+    """Swap ``{{subdomains: a, b, ...}}`` for the generated link list."""
+
+    def repl(match: re.Match) -> str:
+        items = [part.strip() for part in match.group(1).split(",") if part.strip()]
+        if not items:
+            sys.exit(f"{label}: {{{{subdomains: ...}}}} needs at least one prefix.")
+        return render_subdomains_block(items, ctx, label)
+
+    return SUBDOMAINS_TOKEN_RE.sub(repl, html)
 
 
 def replace_block_token(html: str, token: str, block_html: str) -> str:
@@ -258,24 +270,13 @@ def render_section(section: dict, index: int, template: str, ctx: dict) -> list[
         sys.exit(f"{label}: expected a table ([[section]]), got {type(section).__name__}.")
 
     title = str(require_field(section, "title", label))
-    text = str(section.get("text", ""))
-    subdomains = section.get("subdomains")
-    if not text.strip() and not subdomains:
-        sys.exit(f"{label}: needs 'text' (Markdown) and/or a 'subdomains' list.")
+    text = str(require_field(section, "text", label))
 
-    body = render_markdown(apply_age(text, ctx["age"])) if text.strip() else ""
+    body = render_markdown(apply_age(text, ctx["age"]))
 
     if "{{writings}}" in body:
         body = replace_block_token(body, "writings", render_writings_block(ctx))
-
-    if "{{subdomains}}" in body and not subdomains:
-        sys.exit(f"{label}: {{{{subdomains}}}} used but no 'subdomains' list defined.")
-    if subdomains:
-        block = render_subdomains_block(subdomains, ctx, label)
-        if "{{subdomains}}" in body:
-            body = replace_block_token(body, "subdomains", block)
-        else:
-            body = f"{body}\n{block}" if body else block
+    body = expand_subdomains(body, ctx, label)
 
     indented = "\n".join(
         "        " + line if line else "" for line in body.splitlines()

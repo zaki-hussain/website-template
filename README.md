@@ -14,7 +14,7 @@ Top level:
 
 - `name` — page heading and title
 - `logo` — favicon filename in `media/`
-- `domain` — used for the RSS feed URL and subdomain lists
+- `domain` — site domain for the RSS feed and for `{{subdomains: ...}}`
 - `birthdate` — `YYYY-MM-DD`, enables `{{age}}`
 - `[[socials]]` — header icons: `label`, `href`, `icon` (filename in `media/`)
 
@@ -27,6 +27,7 @@ Each `[[section]]` is a collapsible block on the home page (first one open by de
 title = "About"
 text = """
 Anything in **Markdown**, with <em>inline HTML</em> if you want.
+I am {{age}}.
 """
 ```
 
@@ -34,13 +35,16 @@ Placeholders usable anywhere in `text`:
 
 - `{{age}}` — age computed from `birthdate`
 - `{{writings}}` — the post list from `content/writings/` plus an RSS link (also enables `feed.xml`)
-- `{{subdomains}}` — renders the section's `subdomains` list; each prefix links to `https://<prefix>.<domain>/` with the `.<domain>` part greyed out. If you omit the placeholder, the list is appended after the text.
+- `{{subdomains: demo, notes}}` — a link for each prefix on the top-level `domain` (`demo.example.com`, …), with the `.<domain>` part greyed out
 
 ```toml
 [[section]]
 title = "Playground"
-text = "Small things I made."
-subdomains = ["demo", "notes"]   # -> demo.example.com, notes.example.com
+text = """
+Small things I made.
+
+{{subdomains: demo, notes}}
+"""
 
 [[section]]
 title = "Writing"
