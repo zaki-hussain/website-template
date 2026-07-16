@@ -7,8 +7,7 @@ name = "Your Name"
 # Favicon filename in media/ (used as the site logo / browser tab icon).
 logo = "logo.jpg"
 
-# Site domain: used in the RSS feed (https://<domain>/) and as {{domain}}
-# in config strings (e.g. playground link suffixes and hrefs).
+# Used as the site address in the RSS feed (https://<domain>/).
 domain = "example.com"
 
 # YYYY-MM-DD birthdate can be accessed with {{age}}
@@ -33,10 +32,9 @@ icon = "email.svg"
 # a small grey line shown above the body.
 #
 # Types:
-#   text    — needs `paragraphs`, a list of strings ({{age}} / {{domain}} work)
+#   text    — needs `paragraphs`, a list of strings ({{age}} works here)
 #   links   — needs `items`, a list of {label, href} tables; an optional
 #             `suffix` per item is shown greyed after the label
-#             ({{age}} / {{domain}} work in label, suffix, and href)
 #   writing — the generated list of posts from content/writings/ + RSS link
 # ---------------------------------------------------------------------------
 
@@ -53,8 +51,8 @@ type = "links"
 title = "Playground"
 note = "Some small things I made and wanted to keep in one place."
 items = [
-    { label = "demo", suffix = ".{{domain}}", href = "https://demo.{{domain}}/" },
-    { label = "notes", suffix = ".{{domain}}", href = "https://notes.{{domain}}/" },
+    { label = "demo", suffix = ".example.com", href = "https://demo.example.com/" },
+    { label = "notes", suffix = ".example.com", href = "https://notes.example.com/" },
 ]
 
 [[section]]
