@@ -191,11 +191,19 @@ a:hover {
 
 .rss-link {
     margin: -0.35rem 0 0.75rem;
+    font-size: 0.75rem;
+    letter-spacing: 0.04em;
 }
 
 .rss-link a {
-    display: inline-block;
-    line-height: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    color: var(--grey);
+}
+
+.rss-link a:hover {
+    color: var(--accent);
 }
 
 .rss-link img {
