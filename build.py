@@ -4,8 +4,8 @@
 Assembles a self-contained, deployable site into ``dist/``:
 
 * copies the static assets (``css/``, ``media/``) verbatim;
-* reads person-specific content from ``config.toml`` (name, socials, and an
-  ordered list of ``[[section]]`` tables) and injects it into ``index.html``;
+* reads person-specific content from ``config.toml`` (name, logo, socials, and
+  an ordered list of ``[[section]]`` tables) and injects it into ``index.html``;
 * renders each ``[[section]]`` with ``templates/section.html`` in config
   order — the first one is expanded by default, the rest collapsed, and all
   share ``name="section"`` so opening one closes the others (no JS needed);
@@ -149,7 +149,7 @@ def render_markdown(body: str) -> str:
     return md.convert(body)
 
 
-def build_post(md_path: Path, template: str, name: str) -> dict[str, str]:
+def build_post(md_path: Path, template: str, name: str, logo: str) -> dict[str, str]:
     meta, body = parse_front_matter(md_path.read_text(encoding="utf-8"))
     slug = md_path.stem
     title = meta.get("title", slug)
@@ -161,6 +161,7 @@ def build_post(md_path: Path, template: str, name: str) -> dict[str, str]:
         .replace("{{date}}", escape(date))
         .replace("{{description}}", escape(description))
         .replace("{{name}}", escape(name))
+        .replace("{{logo}}", escape(logo))
         .replace("{{body}}", render_markdown(body))
     )
 
@@ -370,6 +371,7 @@ def build_index(config: dict, posts: list[dict[str, str]], age: str | None) -> N
         text = re.sub(r'[ \t]*<link rel="alternate"[^>]*/?>\n', "", text)
 
     text = text.replace("{{name}}", escape(str(config.get("name", ""))))
+    text = text.replace("{{logo}}", escape(str(config.get("logo", "logo.jpg"))))
 
     (DIST / "index.html").write_text(text, encoding="utf-8")
 
@@ -394,6 +396,7 @@ def main() -> None:
     age = compute_age(config.get("birthdate"))
     template = TEMPLATE_PATH.read_text(encoding="utf-8")
     name = str(config.get("name", ""))
+    logo = str(config.get("logo", "logo.jpg"))
     with_writing = has_writing_section(config.get("section", []))
 
     # Start from a clean output directory so nothing stale is ever served.
@@ -406,7 +409,7 @@ def main() -> None:
     sources = sorted(
         p for p in CONTENT_DIR.glob("*.md") if not p.name.startswith("_")
     )
-    posts = [build_post(path, template, name) for path in sources]
+    posts = [build_post(path, template, name, logo) for path in sources]
     build_index(config, posts, age)
     if with_writing:
         build_feed(config, posts)

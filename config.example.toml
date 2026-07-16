@@ -1,8 +1,11 @@
 # Copy this file to config.toml and edit it to make the site your own.
-# Then replace media/logo.jpg (favicon) and the social icons in media/,
-# add your posts to content/writings/, and run: python3 build.py
+# Then put your favicon and social icons in media/, add your posts to
+# content/writings/, and run: python3 build.py
 
 name = "Your Name"
+
+# Favicon filename in media/ (used as the site logo / browser tab icon).
+logo = "logo.jpg"
 
 # Used as the site address in the RSS feed (https://<domain>/).
 domain = "example.com"
