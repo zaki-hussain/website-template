@@ -215,8 +215,8 @@ def render_writing_block(ctx: dict) -> str:
         [
             '<p class="rss-link">'
             '<a href="feed.xml" aria-label="RSS">'
-            f'<img src="media/{icon}" alt="RSS">'
-            "</a></p>",
+            f'<img src="media/{icon}" alt="">'
+            "RSS</a></p>",
             '<ul class="list">',
             *("    " + line for line in writing_lines(ctx["posts"])),
             "</ul>",
