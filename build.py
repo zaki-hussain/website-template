@@ -9,21 +9,21 @@ Assembles a self-contained, deployable site into ``dist/``:
 * renders each ``[[section]]`` with ``templates/section.html`` in config
   order — the first one is expanded by default, the rest collapsed, and all
   share ``name="section"`` so opening one closes the others (no JS needed);
-* converts each Markdown source in ``content/writings/*.md`` to a standalone
-  HTML page in ``dist/writings/`` using ``templates/post.html``; if a section
-  uses ``{{writings}}``, it lists the posts on the home page and an RSS feed
+* converts each Markdown source in ``content/writing/*.md`` to a standalone
+  HTML page in ``dist/writing/`` using ``templates/post.html``; if a section
+  uses ``{{writing}}``, it lists the posts on the home page and an RSS feed
   is written to ``dist/feed.xml`` (skipped otherwise).
 
 A ``[[section]]`` is ``title`` + ``text``, where text is Markdown and inline
 HTML passes through untouched. Placeholders inside ``text``:
 
 * ``{{age}}``                   — age computed from top-level ``birthdate``;
-* ``{{writings}}``              — the generated post list plus the RSS link;
+* ``{{writing}}``               — the generated post list plus the RSS link;
 * ``{{subdomains: a, b, ...}}`` — link list for those prefixes on the top-level
   ``domain``, with the prefix accent-coloured and ``.<domain>`` greyed out.
 
 The repo itself is a generic template: everything personal lives in
-``config.toml`` + ``content/writings/`` + ``media/``. Only the contents of
+``config.toml`` + ``content/writing/`` + ``media/``. Only the contents of
 ``dist/`` are meant to be served, so the sources are never exposed on the web.
 
 Run it whenever you change config or add a writing:
@@ -55,13 +55,13 @@ except ModuleNotFoundError:
 
 ROOT = Path(__file__).resolve().parent
 CONFIG_PATH = ROOT / "config.toml"
-CONTENT_DIR = ROOT / "content" / "writings"
+CONTENT_DIR = ROOT / "content" / "writing"
 TEMPLATE_PATH = ROOT / "templates" / "post.html"
 SECTION_TEMPLATE_PATH = ROOT / "templates" / "section.html"
 INDEX_SRC = ROOT / "index.html"
 
 DIST = ROOT / "dist"
-DIST_WRITINGS = DIST / "writings"
+DIST_WRITING = DIST / "writing"
 
 # Top-level static files/directories copied verbatim into the build output.
 STATIC_ASSETS = ["css", "media"]
@@ -163,8 +163,8 @@ def build_post(md_path: Path, template: str, name: str, logo: str) -> dict[str, 
         .replace("{{body}}", render_markdown(body))
     )
 
-    DIST_WRITINGS.mkdir(parents=True, exist_ok=True)
-    (DIST_WRITINGS / f"{slug}.html").write_text(html, encoding="utf-8")
+    DIST_WRITING.mkdir(parents=True, exist_ok=True)
+    (DIST_WRITING / f"{slug}.html").write_text(html, encoding="utf-8")
     return {"slug": slug, "title": title, "date": date, "description": description}
 
 
@@ -186,7 +186,7 @@ def writing_lines(posts: list[dict[str, str]]) -> list[str]:
         return ['<li class="list-empty">No braindumps yet</li>']
     ordered = sorted(posts, key=lambda p: (p["date"], p["title"]), reverse=True)
     return [
-        f'<li><a href="writings/{p["slug"]}.html">{escape(p["title"])}</a>'
+        f'<li><a href="writing/{p["slug"]}.html">{escape(p["title"])}</a>'
         f'<span class="list-note">{escape(p["date"])}</span></li>'
         for p in ordered
     ]
@@ -208,8 +208,8 @@ def require_field(section: dict, field: str, label: str) -> object:
     return value
 
 
-def render_writings_block(ctx: dict) -> str:
-    """``{{writings}}``: the generated post list plus the RSS link."""
+def render_writing_block(ctx: dict) -> str:
+    """``{{writing}}``: the generated post list plus the RSS link."""
     return "\n".join(
         [
             '<p class="rss-link"><a href="feed.xml">rss</a></p>',
@@ -274,8 +274,8 @@ def render_section(section: dict, index: int, template: str, ctx: dict) -> list[
 
     body = render_markdown(apply_age(text, ctx["age"]))
 
-    if "{{writings}}" in body:
-        body = replace_block_token(body, "writings", render_writings_block(ctx))
+    if "{{writing}}" in body:
+        body = replace_block_token(body, "writing", render_writing_block(ctx))
     body = expand_subdomains(body, ctx, label)
 
     indented = "\n".join(
@@ -301,9 +301,9 @@ def sections_lines(sections: list[dict], ctx: dict) -> list[str]:
     return lines
 
 
-def has_writings_block(sections: list[dict]) -> bool:
+def has_writing_block(sections: list[dict]) -> bool:
     return any(
-        isinstance(section, dict) and "{{writings}}" in str(section.get("text", ""))
+        isinstance(section, dict) and "{{writing}}" in str(section.get("text", ""))
         for section in sections
     )
 
@@ -325,7 +325,7 @@ def build_feed(config: dict, posts: list[dict[str, str]]) -> None:
 
     items = []
     for post in ordered:
-        link = f"{site}/writings/{post['slug']}.html"
+        link = f"{site}/writing/{post['slug']}.html"
         items.append(
             "\n".join(
                 [
@@ -365,9 +365,9 @@ def build_index(config: dict, posts: list[dict[str, str]], age: str | None) -> N
     text = replace_region(text, "SOCIALS", socials_lines(config.get("socials", [])))
     text = replace_region(text, "SECTIONS", sections_lines(sections, ctx))
 
-    # The RSS feed only exists when {{writings}} is used somewhere, so drop
+    # The RSS feed only exists when {{writing}} is used somewhere, so drop
     # the <link rel="alternate" ...> from the head otherwise.
-    if not has_writings_block(sections):
+    if not has_writing_block(sections):
         text = re.sub(r'[ \t]*<link rel="alternate"[^>]*/?>\n', "", text)
 
     text = text.replace("{{name}}", escape(str(config.get("name", ""))))
@@ -397,7 +397,7 @@ def main() -> None:
     template = TEMPLATE_PATH.read_text(encoding="utf-8")
     name = str(config.get("name", ""))
     logo = str(config.get("logo", "logo.jpg"))
-    with_writing = has_writings_block(config.get("section", []))
+    with_writing = has_writing_block(config.get("section", []))
 
     # Start from a clean output directory so nothing stale is ever served.
     if DIST.exists():
@@ -416,11 +416,11 @@ def main() -> None:
 
     print(f"Built site into {DIST.name}/ ({len(posts)} writing(s)):")
     for post in sorted(posts, key=lambda p: p["date"], reverse=True):
-        print(f"  - {post['date']}  {post['title']}  ->  {DIST.name}/writings/{post['slug']}.html")
+        print(f"  - {post['date']}  {post['title']}  ->  {DIST.name}/writing/{post['slug']}.html")
     if with_writing:
         print(f"  feed -> {DIST.name}/feed.xml")
         if not posts:
-            print("  (no writings yet — home page shows 'No braindumps yet')")
+            print("  (no writing yet — home page shows 'No braindumps yet')")
     if age is not None:
         print(f"  age  -> {age} (from birthdate)")
 

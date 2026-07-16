@@ -1,6 +1,6 @@
 # Website Template
 
-A config-driven personal site. Everything personal lives in `config.toml`, `content/writings/`, and `media/` — the build writes a static site to `dist/`, which is the only thing you serve.
+A config-driven personal site. Everything personal lives in `config.toml`, `content/writing/`, and `media/` — the build writes a static site to `dist/`, which is the only thing you serve.
 
 ```bash
 cp config.example.toml config.toml   # then edit it
@@ -34,7 +34,7 @@ I am {{age}}.
 Placeholders usable anywhere in `text`:
 
 - `{{age}}` — age computed from `birthdate`
-- `{{writings}}` — the post list from `content/writings/` plus an RSS link (also enables `feed.xml`)
+- `{{writing}}` — the post list from `content/writing/` plus an RSS link (also enables `feed.xml`)
 - `{{subdomains: demo, notes}}` — a link for each prefix on the top-level `domain` (`demo.example.com`, …), with the `.<domain>` part greyed out
 
 ```toml
@@ -48,12 +48,12 @@ Small things I made.
 
 [[section]]
 title = "Writing"
-text = "{{writings}}"
+text = "{{writing}}"
 ```
 
-## Writings
+## Writing
 
-Markdown files in `content/writings/`, one page each under `dist/writings/`. Files starting with `_` are ignored. Front matter:
+Markdown files in `content/writing/`, one page each under `dist/writing/`. Files starting with `_` are ignored. Front matter:
 
 ```md
 ---
