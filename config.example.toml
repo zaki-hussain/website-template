@@ -1,10 +1,13 @@
 # Copy this file to config.toml and edit it to make the site your own.
-# Then replace media/logo.jpg (favicon) and the social icons in media/,
-# add your posts to content/writings/, and run: python3 build.py
+# Then put your favicon and social icons in media/, add your posts to
+# content/writings/, and run: python3 build.py
 
 name = "Your Name"
 
-# Used as the site address in the RSS feed (https://<domain>/).
+# Favicon filename in media/ (used as the site logo / browser tab icon).
+logo = "logo.jpg"
+
+# Site domain: used in the RSS feed (https://<domain>/) and for {{subdomains: ...}}.
 domain = "example.com"
 
 # YYYY-MM-DD birthdate can be accessed with {{age}}
@@ -25,33 +28,31 @@ icon = "email.svg"
 # Sections shown on the home page, rendered in this order. The first one is
 # expanded by default; opening any other collapses the rest (no JS involved).
 #
-# Every section needs `type` and `title`. Optional on any section: `note`,
-# a small grey line shown above the body.
+# A section is a `title` plus a `text` body written in Markdown — inline HTML
+# works too. Placeholders you can drop anywhere in `text`:
 #
-# Types:
-#   text    — needs `paragraphs`, a list of strings ({{age}} works here)
-#   links   — needs `items`, a list of {label, href} tables; an optional
-#             `suffix` per item is shown greyed after the label
-#   writing — the generated list of posts from content/writings/ + RSS link
+#   {{age}}                — age computed from birthdate
+#   {{writings}}           — the post list from content/writings/ + RSS link
+#   {{subdomains: a, b}}   — prefixes linking to https://<prefix>.<domain>/
+#                            with .<domain> greyed out
 # ---------------------------------------------------------------------------
 
 [[section]]
-type = "text"
 title = "About"
-paragraphs = [
-    "Write about yourself",
-    "You can also add your age with {{age}}",
-]
+text = """
+Write about yourself in **Markdown** — links, lists, and <em>inline HTML</em> all work.
+
+You can also add your age with {{age}}.
+"""
 
 [[section]]
-type = "links"
 title = "Playground"
-note = "Some small things I made and wanted to keep in one place."
-items = [
-    { label = "demo", suffix = ".example.com", href = "https://demo.example.com/" },
-    { label = "notes", suffix = ".example.com", href = "https://notes.example.com/" },
-]
+text = """
+<p class="block-note">Some small things I made and wanted to keep in one place.</p>
+
+{{subdomains: demo, notes}}
+"""
 
 [[section]]
-type = "writing"
 title = "Writing"
+text = "{{writings}}"
