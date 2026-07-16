@@ -1,6 +1,6 @@
 # Copy this file to config.toml and edit it to make the site your own.
 # Then put your favicon and social icons in media/, add your posts to
-# content/writings/, and run: python3 build.py
+# content/writing/, and run: python3 build.py
 
 name = "Your Name"
 
@@ -32,7 +32,7 @@ icon = "email.svg"
 # works too. Placeholders you can drop anywhere in `text`:
 #
 #   {{age}}                — age computed from birthdate
-#   {{writings}}           — the post list from content/writings/ + RSS link
+#   {{writing}}            — the post list from content/writing/ + RSS link
 #   {{subdomains: a, b}}   — prefixes linking to https://<prefix>.<domain>/
 #                            with .<domain> greyed out
 # ---------------------------------------------------------------------------
@@ -55,4 +55,4 @@ text = """
 
 [[section]]
 title = "Writing"
-text = "{{writings}}"
+text = "{{writing}}"
