@@ -17,6 +17,10 @@ domain = "example.com"
 # YYYY-MM-DD birthdate can be accessed with {{age}}
 birthdate = "2000-01-01"
 
+# Extra top-level directories or files to copy into dist/ (css/ and media/ are
+# always included). Useful for things like a library/ of PDFs.
+# include = ["library"]
+
 # Social icons in the header. `icon` is a filename in media/.
 [[socials]]
 label = "GitHub"
