@@ -1,6 +1,6 @@
 # Website Template
 
-A config-driven personal site. Everything personal lives in `config.toml`, `content/writing/`, and `media/` — the build writes a static site to `dist/`, which is the only thing you serve.
+A config-driven personal site. Everything personal lives in `config.toml`, `content/writing/`, and `media/` (plus any extra paths in `include`) — the build writes a static site to `dist/`, which is the only thing you serve.
 
 ```bash
 cp config.example.toml config.toml   # then edit it
@@ -17,6 +17,7 @@ Top level:
 - `rss_icon` — RSS icon filename in `media/` (defaults to `rss.svg`; shown with `{{writing}}`)
 - `domain` — site domain for the RSS feed and for `{{subdomains: ...}}`
 - `birthdate` — `YYYY-MM-DD`, enables `{{age}}`
+- `include` — optional list of extra top-level directories/files to copy into `dist/` alongside `css/` and `media/` (e.g. `include = ["library"]`)
 - `[[socials]]` — header icons: `label`, `href`, `icon` (filename in `media/`)
 
 ## Sections
