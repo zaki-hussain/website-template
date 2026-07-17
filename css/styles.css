@@ -115,7 +115,7 @@ a:hover {
     display: flex;
     flex-direction: column;
     justify-content: center;
-    gap: 1.75rem;
+    gap: 1rem;
     padding: 3rem 0 3rem var(--gutter);
     min-width: 0;
 }
