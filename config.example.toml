@@ -37,8 +37,8 @@ icon = "email.svg"
 #
 #   {{age}}                — age computed from birthdate
 #   {{writing}}            — the post list from content/writing/ + RSS icon
-#   {{subdomains: a, b}}   — prefixes linking to https://<prefix>.<domain>/
-#                            with .<domain> greyed out
+#   {{subdomains: a, b}}   — bullet list of prefixes linking to
+#                            https://<prefix>.<domain>/, .<domain> greyed out
 # ---------------------------------------------------------------------------
 
 [[section]]

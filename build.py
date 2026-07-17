@@ -19,8 +19,9 @@ HTML passes through untouched. Placeholders inside ``text``:
 
 * ``{{age}}``                   — age computed from top-level ``birthdate``;
 * ``{{writing}}``               — the generated post list plus the RSS icon;
-* ``{{subdomains: a, b, ...}}`` — link list for those prefixes on the top-level
-  ``domain``, with the prefix accent-coloured and ``.<domain>`` greyed out.
+* ``{{subdomains: a, b, ...}}`` — markdown-style bullet list of links for those
+  prefixes on the top-level ``domain``, with the prefix accent-coloured and
+  ``.<domain>`` greyed out.
 
 The repo itself is a generic template: everything personal lives in
 ``config.toml`` + ``content/writing/`` + ``media/``. Only the contents of
@@ -230,15 +231,17 @@ SUBDOMAINS_TOKEN_RE = re.compile(
 
 
 def render_subdomains_block(items: list[str], ctx: dict, label: str) -> str:
-    """Prefixes linking to ``https://<prefix>.<domain>/``, with the prefix
-    accent-coloured and ``.<domain>`` greyed out."""
+    """Prefixes as a markdown-style bullet list linking to
+    ``https://<prefix>.<domain>/``, with the prefix accent-coloured and
+    ``.<domain>`` greyed out."""
     domain = str(ctx.get("domain") or "").strip()
     if not domain:
         sys.exit(
             f"{label}: {{{{subdomains: ...}}}} needs the top-level domain setting. "
             'Add domain = "example.com" to config.toml.'
         )
-    lines = ['<ul class="list list--plain">']
+    # Plain <ul> (no .list) so section CSS styles it like a Markdown bullet list.
+    lines = ["<ul>"]
     for prefix in items:
         href = escape(f"https://{prefix}.{domain}/")
         text = f'{escape(prefix)}<span class="tld">.{escape(domain)}</span>'

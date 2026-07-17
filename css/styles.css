@@ -258,16 +258,6 @@ a:hover {
     margin-top: 0.15rem;
 }
 
-/* Plain link list: no separators, no notes, tight spacing */
-.list--plain li {
-    padding: 0.2rem 0;
-    border-bottom: none;
-}
-
-.list--plain li a {
-    font-size: 1.05rem;
-}
-
 /* Markdown lists written in section text (generated lists carry .list) */
 .block-body ul:not(.list),
 .block-body ol:not(.list) {

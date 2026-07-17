@@ -36,7 +36,7 @@ Placeholders usable anywhere in `text`:
 
 - `{{age}}` — age computed from `birthdate`
 - `{{writing}}` — the post list from `content/writing/` plus an RSS icon linking to `feed.xml` (also enables the feed)
-- `{{subdomains: demo, notes}}` — a link for each prefix on the top-level `domain` (`demo.example.com`, …), with the `.<domain>` part greyed out
+- `{{subdomains: demo, notes}}` — a bullet list of links for each prefix on the top-level `domain` (`demo.example.com`, …), with the `.<domain>` part greyed out
 
 ```toml
 [[section]]
