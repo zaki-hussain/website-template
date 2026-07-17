@@ -3,8 +3,7 @@
 
 Assembles a self-contained, deployable site into ``dist/``:
 
-* copies the static assets (``css/``, ``media/``, plus any paths listed in
-  config ``include``) verbatim;
+* copies the static assets (``css/``, ``media/``) verbatim;
 * reads person-specific content from ``config.toml`` (name, logo, socials, and
   an ordered list of ``[[section]]`` tables) and injects it into ``index.html``;
 * renders each ``[[section]]`` with ``templates/section.html`` in config
@@ -24,9 +23,8 @@ HTML passes through untouched. Placeholders inside ``text``:
   ``domain``, with the prefix accent-coloured and ``.<domain>`` greyed out.
 
 The repo itself is a generic template: everything personal lives in
-``config.toml`` + ``content/writing/`` + ``media/`` (and any extra paths in
-``include``). Only the contents of ``dist/`` are meant to be served, so the
-sources are never exposed on the web.
+``config.toml`` + ``content/writing/`` + ``media/``. Only the contents of
+``dist/`` are meant to be served, so the sources are never exposed on the web.
 
 Run it whenever you change config or add a writing:
 
@@ -65,22 +63,8 @@ INDEX_SRC = ROOT / "index.html"
 DIST = ROOT / "dist"
 DIST_WRITING = DIST / "writing"
 
-# Top-level static files/directories always copied verbatim into the build output.
+# Top-level static files/directories copied verbatim into the build output.
 STATIC_ASSETS = ["css", "media"]
-
-# Names that must never be copied into dist/ even if listed in config.
-_BLOCKED_INCLUDE_NAMES = frozenset(
-    {
-        "dist",
-        "build.py",
-        "config.toml",
-        "config.example.toml",
-        "requirements.txt",
-        "README.md",
-        ".git",
-        ".gitignore",
-    }
-)
 
 FRONT_MATTER_RE = re.compile(r"^---\s*\n(.*?)\n---\s*\n", re.DOTALL)
 
@@ -92,38 +76,6 @@ def load_config() -> dict:
         )
     with CONFIG_PATH.open("rb") as handle:
         return tomllib.load(handle)
-
-
-def static_asset_names(config: dict) -> list[str]:
-    """Return top-level paths to copy into dist/: css, media, plus config ``include``."""
-    extras = config.get("include", [])
-    if extras is None:
-        extras = []
-    if not isinstance(extras, list):
-        sys.exit(
-            'include must be a list of top-level names, e.g. include = ["library"]'
-        )
-
-    names: list[str] = []
-    seen: set[str] = set()
-    for raw in [*STATIC_ASSETS, *extras]:
-        if not isinstance(raw, str) or not raw.strip():
-            sys.exit(
-                'include entries must be non-empty strings, e.g. include = ["library"]'
-            )
-        name = raw.strip().rstrip("/\\")
-        if not name or name in (".", "..") or "/" in name or "\\" in name:
-            sys.exit(
-                f"Invalid include {raw!r}: use a top-level name under the repo root "
-                '(no paths or ".."), e.g. "library".'
-            )
-        if name in _BLOCKED_INCLUDE_NAMES or name.startswith("."):
-            sys.exit(f"include cannot copy {name!r} into dist/.")
-        if name in seen:
-            continue
-        seen.add(name)
-        names.append(name)
-    return names
 
 
 def compute_age(birthdate: object) -> str | None:
@@ -433,17 +385,10 @@ def build_index(config: dict, posts: list[dict[str, str]], age: str | None) -> N
     (DIST / "index.html").write_text(text, encoding="utf-8")
 
 
-def copy_static_assets(names: list[str], *, required: set[str] | None = None) -> None:
-    """Copy top-level ``names`` into dist/. Missing built-ins are skipped; missing
-    config ``include`` entries are errors."""
-    required = required or set()
-    for name in names:
+def copy_static_assets() -> None:
+    for name in STATIC_ASSETS:
         src = ROOT / name
         if not src.exists():
-            if name in required:
-                sys.exit(
-                    f"include lists {name!r}, but {src.relative_to(ROOT)} does not exist."
-                )
             continue
         dest = DIST / name
         if src.is_dir():
@@ -462,15 +407,13 @@ def main() -> None:
     name = str(config.get("name", ""))
     logo = str(config.get("logo", "logo.jpg"))
     with_writing = has_writing_block(config.get("section", []))
-    asset_names = static_asset_names(config)
-    required_assets = set(asset_names) - set(STATIC_ASSETS)
 
     # Start from a clean output directory so nothing stale is ever served.
     if DIST.exists():
         shutil.rmtree(DIST)
     DIST.mkdir(parents=True)
 
-    copy_static_assets(asset_names, required=required_assets)
+    copy_static_assets()
 
     sources = sorted(
         p for p in CONTENT_DIR.glob("*.md") if not p.name.startswith("_")
