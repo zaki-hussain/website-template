@@ -411,8 +411,8 @@ a:hover {
 
     .icons {
         gap: 0.75rem;
-        justify-content: flex-start;
-        align-self: flex-start;
+        justify-content: center;
+        align-self: center;
     }
 
     .icon {
